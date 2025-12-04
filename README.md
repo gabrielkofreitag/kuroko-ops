@@ -163,17 +163,6 @@ your-project/
 - No hardcoded secrets in the codebase
 - See `auto-build/.gitignore` for a complete list of excluded files
 
-## Documentation
-
-For complete documentation including:
-- Detailed architecture diagrams
-- Agent prompt specifications
-- Security model details
-- Configuration options
-- Troubleshooting guide
-
-See [AUTO-BUILD-FRAMEWORK.md](AUTO-BUILD-FRAMEWORK.md)
-
 ## License
 
 MIT License

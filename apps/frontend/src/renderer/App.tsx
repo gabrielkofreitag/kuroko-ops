@@ -18,6 +18,7 @@ import {
 } from '@dnd-kit/sortable';
 import { TooltipProvider } from './components/ui/tooltip';
 import { Button } from './components/ui/button';
+import { ToolApprovalModal } from './components/ToolApprovalModal';
 import { Toaster } from './components/ui/toaster';
 import {
   Dialog,
@@ -57,7 +58,7 @@ import { GitHubSetupModal } from './components/GitHubSetupModal';
 import { useProjectStore, loadProjects, addProject, initializeProject, removeProject } from './stores/project-store';
 import { useTaskStore, loadTasks } from './stores/task-store';
 import { useSettingsStore, loadSettings, loadProfiles, saveSettings } from './stores/settings-store';
-import { useClaudeProfileStore, loadClaudeProfiles } from './stores/claude-profile-store';
+import { useLLMProfileStore, loadLLMProfiles } from './stores/llm-profile-store';
 import { useTerminalStore, restoreTerminalSessions } from './stores/terminal-store';
 import { initializeGitHubListeners } from './stores/github';
 import { initDownloadProgressListener } from './stores/download-store';
@@ -131,8 +132,8 @@ export function App() {
   // API Profile state
   const profiles = useSettingsStore((state) => state.profiles);
 
-  // Claude Profile state (OAuth)
-  const claudeProfiles = useClaudeProfileStore((state) => state.profiles);
+  // LLM Profile state
+  const llmProfiles = useLLMProfileStore((state) => state.profiles);
 
   // UI State
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -154,7 +155,7 @@ export function App() {
   const [skippedInitProjectId, setSkippedInitProjectId] = useState<string | null>(null);
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
 
-  // GitHub setup state (shown after Auto Claude init)
+  // GitHub setup state (shown after Kuroko-Ops init)
   const [showGitHubSetup, setShowGitHubSetup] = useState(false);
   const [gitHubSetupProject, setGitHubSetupProject] = useState<Project | null>(null);
 
@@ -184,7 +185,7 @@ export function App() {
     loadProjects();
     loadSettings();
     loadProfiles();
-    loadClaudeProfiles();
+    loadLLMProfiles();
     // Initialize global GitHub listeners (PR reviews, etc.) so they persist across navigation
     initializeGitHubListeners();
     // Initialize global download progress listener for Ollama model downloads
@@ -242,7 +243,7 @@ export function App() {
         console.warn('[App] Tab state is valid, no action needed');
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- projectTabs is intentionally omitted to avoid infinite re-render (computed array creates new reference each render)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- projectTabs is intentionally omitted to avoid infinite re-render (computed array creates new reference each render)
   }, [projects, activeProjectId, selectedProjectId, openProjectIds, openProjectTab, setActiveProject, projectTabs.length, projectTabs.map]);
 
   // Track if settings have been loaded at least once
@@ -268,8 +269,8 @@ export function App() {
 
     // Only show wizard if onboarding not completed AND no auth is configured
     if (settingsHaveLoaded &&
-        settings.onboardingCompleted === false &&
-        !hasAnyAuth) {
+      settings.onboardingCompleted === false &&
+      !hasAnyAuth) {
       setIsOnboardingWizardOpen(true);
     }
   }, [settingsHaveLoaded, settings.onboardingCompleted, profiles, claudeProfiles]);
@@ -586,7 +587,7 @@ export function App() {
       });
       setSelectedTask(updatedTask);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentionally omit selectedTask object to prevent infinite re-render loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentionally omit selectedTask object to prevent infinite re-render loop
   }, [tasks, selectedTask?.id, selectedTask?.specId, selectedTask]);
 
   const handleTaskClick = (task: Task) => {
@@ -745,7 +746,7 @@ export function App() {
       } else {
         // Initialization failed - show error but keep dialog open
         console.warn('[InitDialog] Initialization failed, showing error');
-        const errorMessage = result?.error || 'Failed to initialize Auto Claude. Please try again.';
+        const errorMessage = result?.error || 'Failed to initialize Kuroko-Ops. Please try again.';
         setInitError(errorMessage);
         setIsInitializing(false);
       }
@@ -826,354 +827,357 @@ export function App() {
     <ViewStateProvider>
       <TooltipProvider>
         <ProactiveSwapListener />
-      <div className="flex h-screen bg-background">
-        {/* Sidebar */}
-        <Sidebar
-          onSettingsClick={() => setIsSettingsDialogOpen(true)}
-          onNewTaskClick={() => setIsNewTaskDialogOpen(true)}
-          activeView={activeView}
-          onViewChange={setActiveView}
-        />
+        <div className="flex h-screen bg-background">
+          {/* Sidebar */}
+          <Sidebar
+            onSettingsClick={() => setIsSettingsDialogOpen(true)}
+            onNewTaskClick={() => setIsNewTaskDialogOpen(true)}
+            activeView={activeView}
+            onViewChange={setActiveView}
+          />
 
-        {/* Main content */}
-        <div className="flex flex-1 flex-col overflow-hidden">
-          {/* Project Tabs */}
-          {projectTabs.length > 0 && (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext items={projectTabs.map(p => p.id)} strategy={horizontalListSortingStrategy}>
-                <ProjectTabBarWithContext
-                  projects={projectTabs}
-                  activeProjectId={activeProjectId}
-                  onProjectSelect={handleProjectTabSelect}
-                  onProjectClose={handleProjectTabClose}
-                  onAddProject={handleAddProject}
-                  onSettingsClick={() => setIsSettingsDialogOpen(true)}
-                />
-              </SortableContext>
+          {/* Main content */}
+          <div className="flex flex-1 flex-col overflow-hidden">
+            {/* Project Tabs */}
+            {projectTabs.length > 0 && (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext items={projectTabs.map(p => p.id)} strategy={horizontalListSortingStrategy}>
+                  <ProjectTabBarWithContext
+                    projects={projectTabs}
+                    activeProjectId={activeProjectId}
+                    onProjectSelect={handleProjectTabSelect}
+                    onProjectClose={handleProjectTabClose}
+                    onAddProject={handleAddProject}
+                    onSettingsClick={() => setIsSettingsDialogOpen(true)}
+                  />
+                </SortableContext>
 
-              {/* Drag overlay - shows what's being dragged */}
-              <DragOverlay>
-                {activeDragProject && (
-                  <div className="flex items-center gap-2 bg-card border border-border rounded-md px-4 py-2.5 shadow-lg max-w-[200px]">
-                    <div className="w-1 h-4 bg-muted-foreground rounded-full" />
-                    <span className="truncate font-medium text-sm">
-                      {activeDragProject.name}
-                    </span>
+                {/* Drag overlay - shows what's being dragged */}
+                <DragOverlay>
+                  {activeDragProject && (
+                    <div className="flex items-center gap-2 bg-card border border-border rounded-md px-4 py-2.5 shadow-lg max-w-[200px]">
+                      <div className="w-1 h-4 bg-muted-foreground rounded-full" />
+                      <span className="truncate font-medium text-sm">
+                        {activeDragProject.name}
+                      </span>
+                    </div>
+                  )}
+                </DragOverlay>
+              </DndContext>
+            )}
+
+            {/* Main content area */}
+            <main className="flex-1 overflow-hidden">
+              {selectedProject ? (
+                <>
+                  {activeView === 'kanban' && (
+                    <KanbanBoard
+                      tasks={tasks}
+                      onTaskClick={handleTaskClick}
+                      onNewTaskClick={() => setIsNewTaskDialogOpen(true)}
+                      onRefresh={handleRefreshTasks}
+                      isRefreshing={isRefreshingTasks}
+                    />
+                  )}
+                  {/* TerminalGrid is always mounted but hidden when not active to preserve terminal state */}
+                  <div className={activeView === 'terminals' ? 'h-full' : 'hidden'}>
+                    <TerminalGrid
+                      projectPath={selectedProject?.path}
+                      onNewTaskClick={() => setIsNewTaskDialogOpen(true)}
+                      isActive={activeView === 'terminals'}
+                    />
                   </div>
-                )}
-              </DragOverlay>
-            </DndContext>
-          )}
-
-          {/* Main content area */}
-          <main className="flex-1 overflow-hidden">
-            {selectedProject ? (
-              <>
-                {activeView === 'kanban' && (
-                  <KanbanBoard
-                    tasks={tasks}
-                    onTaskClick={handleTaskClick}
-                    onNewTaskClick={() => setIsNewTaskDialogOpen(true)}
-                    onRefresh={handleRefreshTasks}
-                    isRefreshing={isRefreshingTasks}
-                  />
-                )}
-                {/* TerminalGrid is always mounted but hidden when not active to preserve terminal state */}
-                <div className={activeView === 'terminals' ? 'h-full' : 'hidden'}>
-                  <TerminalGrid
-                    projectPath={selectedProject?.path}
-                    onNewTaskClick={() => setIsNewTaskDialogOpen(true)}
-                    isActive={activeView === 'terminals'}
-                  />
-                </div>
-                {activeView === 'roadmap' && (activeProjectId || selectedProjectId) && (
-                  <Roadmap projectId={activeProjectId || selectedProjectId!} onGoToTask={handleGoToTask} />
-                )}
-                {activeView === 'context' && (activeProjectId || selectedProjectId) && (
-                  <Context projectId={activeProjectId || selectedProjectId!} />
-                )}
-                {activeView === 'ideation' && (activeProjectId || selectedProjectId) && (
-                  <Ideation projectId={activeProjectId || selectedProjectId!} onGoToTask={handleGoToTask} />
-                )}
-                {activeView === 'insights' && (activeProjectId || selectedProjectId) && (
-                  <Insights projectId={activeProjectId || selectedProjectId!} />
-                )}
-                {activeView === 'github-issues' && (activeProjectId || selectedProjectId) && (
-                  <GitHubIssues
-                    onOpenSettings={() => {
-                      setSettingsInitialProjectSection('github');
-                      setIsSettingsDialogOpen(true);
-                    }}
-                    onNavigateToTask={handleGoToTask}
-                  />
-                )}
-                {activeView === 'gitlab-issues' && (activeProjectId || selectedProjectId) && (
-                  <GitLabIssues
-                    onOpenSettings={() => {
-                      setSettingsInitialProjectSection('gitlab');
-                      setIsSettingsDialogOpen(true);
-                    }}
-                    onNavigateToTask={handleGoToTask}
-                  />
-                )}
-                {/* GitHubPRs is always mounted but hidden when not active to preserve review state */}
-                {(activeProjectId || selectedProjectId) && (
-                  <div className={activeView === 'github-prs' ? 'h-full' : 'hidden'}>
-                    <GitHubPRs
+                  {activeView === 'roadmap' && (activeProjectId || selectedProjectId) && (
+                    <Roadmap projectId={activeProjectId || selectedProjectId!} onGoToTask={handleGoToTask} />
+                  )}
+                  {activeView === 'context' && (activeProjectId || selectedProjectId) && (
+                    <Context projectId={activeProjectId || selectedProjectId!} />
+                  )}
+                  {activeView === 'ideation' && (activeProjectId || selectedProjectId) && (
+                    <Ideation projectId={activeProjectId || selectedProjectId!} onGoToTask={handleGoToTask} />
+                  )}
+                  {activeView === 'insights' && (activeProjectId || selectedProjectId) && (
+                    <Insights projectId={activeProjectId || selectedProjectId!} />
+                  )}
+                  {activeView === 'github-issues' && (activeProjectId || selectedProjectId) && (
+                    <GitHubIssues
                       onOpenSettings={() => {
                         setSettingsInitialProjectSection('github');
                         setIsSettingsDialogOpen(true);
                       }}
-                      isActive={activeView === 'github-prs'}
+                      onNavigateToTask={handleGoToTask}
                     />
-                  </div>
-                )}
-                {activeView === 'gitlab-merge-requests' && (activeProjectId || selectedProjectId) && (
-                  <GitLabMergeRequests
-                    projectId={activeProjectId || selectedProjectId!}
-                    onOpenSettings={() => {
-                      setSettingsInitialProjectSection('gitlab');
-                      setIsSettingsDialogOpen(true);
-                    }}
-                  />
-                )}
-                {activeView === 'changelog' && (activeProjectId || selectedProjectId) && (
-                  <Changelog />
-                )}
-                {activeView === 'worktrees' && (activeProjectId || selectedProjectId) && (
-                  <Worktrees projectId={activeProjectId || selectedProjectId!} />
-                )}
-                {activeView === 'agent-tools' && <AgentTools />}
-              </>
-            ) : (
-              <WelcomeScreen
-                projects={projects}
-                onNewProject={handleAddProject}
-                onOpenProject={handleAddProject}
-                onSelectProject={(projectId) => {
-                  openProjectTab(projectId);
-                }}
-              />
-            )}
-          </main>
-        </div>
+                  )}
+                  {activeView === 'gitlab-issues' && (activeProjectId || selectedProjectId) && (
+                    <GitLabIssues
+                      onOpenSettings={() => {
+                        setSettingsInitialProjectSection('gitlab');
+                        setIsSettingsDialogOpen(true);
+                      }}
+                      onNavigateToTask={handleGoToTask}
+                    />
+                  )}
+                  {/* GitHubPRs is always mounted but hidden when not active to preserve review state */}
+                  {(activeProjectId || selectedProjectId) && (
+                    <div className={activeView === 'github-prs' ? 'h-full' : 'hidden'}>
+                      <GitHubPRs
+                        onOpenSettings={() => {
+                          setSettingsInitialProjectSection('github');
+                          setIsSettingsDialogOpen(true);
+                        }}
+                        isActive={activeView === 'github-prs'}
+                      />
+                    </div>
+                  )}
+                  {activeView === 'gitlab-merge-requests' && (activeProjectId || selectedProjectId) && (
+                    <GitLabMergeRequests
+                      projectId={activeProjectId || selectedProjectId!}
+                      onOpenSettings={() => {
+                        setSettingsInitialProjectSection('gitlab');
+                        setIsSettingsDialogOpen(true);
+                      }}
+                    />
+                  )}
+                  {activeView === 'changelog' && (activeProjectId || selectedProjectId) && (
+                    <Changelog />
+                  )}
+                  {activeView === 'worktrees' && (activeProjectId || selectedProjectId) && (
+                    <Worktrees projectId={activeProjectId || selectedProjectId!} />
+                  )}
+                  {activeView === 'agent-tools' && <AgentTools />}
+                </>
+              ) : (
+                <WelcomeScreen
+                  projects={projects}
+                  onNewProject={handleAddProject}
+                  onOpenProject={handleAddProject}
+                  onSelectProject={(projectId) => {
+                    openProjectTab(projectId);
+                  }}
+                />
+              )}
+            </main>
+          </div>
 
-        {/* Task detail modal */}
-        <TaskDetailModal
-          open={!!selectedTask}
-          task={selectedTask}
-          onOpenChange={(open) => !open && handleCloseTaskDetail()}
-          onSwitchToTerminals={() => setActiveView('terminals')}
-          onOpenInbuiltTerminal={handleOpenInbuiltTerminal}
-        />
-
-        {/* Dialogs */}
-        {(activeProjectId || selectedProjectId) && (
-          <TaskCreationWizard
-            projectId={activeProjectId || selectedProjectId!}
-            open={isNewTaskDialogOpen}
-            onOpenChange={setIsNewTaskDialogOpen}
+          {/* Task detail modal */}
+          <TaskDetailModal
+            open={!!selectedTask}
+            task={selectedTask}
+            onOpenChange={(open) => !open && handleCloseTaskDetail()}
+            onSwitchToTerminals={() => setActiveView('terminals')}
+            onOpenInbuiltTerminal={handleOpenInbuiltTerminal}
           />
-        )}
 
-        <AppSettingsDialog
-          open={isSettingsDialogOpen}
-          onOpenChange={(open) => {
-            setIsSettingsDialogOpen(open);
-            if (!open) {
-              // Reset initial sections when dialog closes
-              setSettingsInitialSection(undefined);
-              setSettingsInitialProjectSection(undefined);
+          {/* Dialogs */}
+          {(activeProjectId || selectedProjectId) && (
+            <TaskCreationWizard
+              projectId={activeProjectId || selectedProjectId!}
+              open={isNewTaskDialogOpen}
+              onOpenChange={setIsNewTaskDialogOpen}
+            />
+          )}
+
+          <AppSettingsDialog
+            open={isSettingsDialogOpen}
+            onOpenChange={(open) => {
+              setIsSettingsDialogOpen(open);
+              if (!open) {
+                // Reset initial sections when dialog closes
+                setSettingsInitialSection(undefined);
+                setSettingsInitialProjectSection(undefined);
+              }
+            }}
+            initialSection={settingsInitialSection}
+            initialProjectSection={settingsInitialProjectSection}
+            onRerunWizard={() => {
+              // Reset onboarding state to trigger wizard
+              useSettingsStore.getState().updateSettings({ onboardingCompleted: false });
+              // Close settings dialog
+              setIsSettingsDialogOpen(false);
+              // Open onboarding wizard
+              setIsOnboardingWizardOpen(true);
+            }}
+          />
+
+          {/* Add Project Modal */}
+          <AddProjectModal
+            open={showAddProjectModal}
+            onOpenChange={setShowAddProjectModal}
+            onProjectAdded={handleProjectAdded}
+          />
+
+          {/* Initialize Kuroko-Ops Dialog */}
+          <Dialog open={showInitDialog} onOpenChange={(open) => {
+            console.warn('[InitDialog] onOpenChange called', { open, pendingProject: !!pendingProject, isInitializing, initSuccess });
+            // Only trigger skip if user manually closed the dialog
+            // Don't trigger if: successful init, no pending project, or currently initializing
+            if (!open && pendingProject && !isInitializing && !initSuccess) {
+              handleSkipInit();
             }
-          }}
-          initialSection={settingsInitialSection}
-          initialProjectSection={settingsInitialProjectSection}
-          onRerunWizard={() => {
-            // Reset onboarding state to trigger wizard
-            useSettingsStore.getState().updateSettings({ onboardingCompleted: false });
-            // Close settings dialog
-            setIsSettingsDialogOpen(false);
-            // Open onboarding wizard
-            setIsOnboardingWizardOpen(true);
-          }}
-        />
-
-        {/* Add Project Modal */}
-        <AddProjectModal
-          open={showAddProjectModal}
-          onOpenChange={setShowAddProjectModal}
-          onProjectAdded={handleProjectAdded}
-        />
-
-        {/* Initialize Auto Claude Dialog */}
-        <Dialog open={showInitDialog} onOpenChange={(open) => {
-          console.warn('[InitDialog] onOpenChange called', { open, pendingProject: !!pendingProject, isInitializing, initSuccess });
-          // Only trigger skip if user manually closed the dialog
-          // Don't trigger if: successful init, no pending project, or currently initializing
-          if (!open && pendingProject && !isInitializing && !initSuccess) {
-            handleSkipInit();
-          }
-        }}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Download className="h-5 w-5" />
-                {t('initialize.title')}
-              </DialogTitle>
-              <DialogDescription>
-                {t('initialize.description')}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              <div className="rounded-lg bg-muted p-4 text-sm">
-                <p className="font-medium mb-2">{t('initialize.willDo')}</p>
-                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li>{t('initialize.createFolder')}</li>
-                  <li>{t('initialize.copyFramework')}</li>
-                  <li>{t('initialize.setupSpecs')}</li>
-                </ul>
-              </div>
-              {!settings.autoBuildPath && (
-                <div className="mt-4 rounded-lg border border-warning/50 bg-warning/10 p-4 text-sm">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
-                    <div>
-                      <p className="font-medium text-warning">{t('initialize.sourcePathNotConfigured')}</p>
-                      <p className="text-muted-foreground mt-1">
-                        {t('initialize.sourcePathNotConfiguredDescription')}
-                      </p>
+          }}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Download className="h-5 w-5" />
+                  {t('initialize.title')}
+                </DialogTitle>
+                <DialogDescription>
+                  {t('initialize.description')}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <div className="rounded-lg bg-muted p-4 text-sm">
+                  <p className="font-medium mb-2">{t('initialize.willDo')}</p>
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                    <li>{t('initialize.createFolder')}</li>
+                    <li>{t('initialize.copyFramework')}</li>
+                    <li>{t('initialize.setupSpecs')}</li>
+                  </ul>
+                </div>
+                {!settings.autoBuildPath && (
+                  <div className="mt-4 rounded-lg border border-warning/50 bg-warning/10 p-4 text-sm">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+                      <div>
+                        <p className="font-medium text-warning">{t('initialize.sourcePathNotConfigured')}</p>
+                        <p className="text-muted-foreground mt-1">
+                          {t('initialize.sourcePathNotConfiguredDescription')}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-              {initError && (
-                <div className="mt-4 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
-                    <div>
-                      <p className="font-medium text-destructive">{t('initialize.initFailed')}</p>
-                      <p className="text-muted-foreground mt-1">
-                        {initError}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={handleSkipInit} disabled={isInitializing}>
-                {t('common:buttons.skip', { ns: 'common' })}
-              </Button>
-              <Button
-                onClick={handleInitialize}
-                disabled={isInitializing || !settings.autoBuildPath}
-              >
-                {isInitializing ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    {t('common:labels.initializing', { ns: 'common' })}
-                  </>
-                ) : (
-                  <>
-                    <Download className="mr-2 h-4 w-4" />
-                    {t('common:buttons.initialize', { ns: 'common' })}
-                  </>
                 )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* GitHub Setup Modal - shows after Auto Claude init to configure GitHub */}
-        {gitHubSetupProject && (
-          <GitHubSetupModal
-            open={showGitHubSetup}
-            onOpenChange={setShowGitHubSetup}
-            project={gitHubSetupProject}
-            onComplete={handleGitHubSetupComplete}
-            onSkip={handleGitHubSetupSkip}
-          />
-        )}
-
-        {/* Remove Project Confirmation Dialog */}
-        <Dialog open={showRemoveProjectDialog} onOpenChange={(open) => {
-          if (!open) handleCancelRemoveProject();
-        }}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t('removeProject.title')}</DialogTitle>
-              <DialogDescription>
-                {t('removeProject.description', { projectName: projectToRemove?.name || '' })}
-              </DialogDescription>
-            </DialogHeader>
-            {removeProjectError && (
-              <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 rounded-md">
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                <span>{removeProjectError}</span>
+                {initError && (
+                  <div className="mt-4 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                      <div>
+                        <p className="font-medium text-destructive">{t('initialize.initFailed')}</p>
+                        <p className="text-muted-foreground mt-1">
+                          {initError}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-            <DialogFooter>
-              <Button variant="outline" onClick={handleCancelRemoveProject}>
-                {t('removeProject.cancel')}
-              </Button>
-              <Button variant="destructive" onClick={handleConfirmRemoveProject}>
-                {t('removeProject.remove')}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button variant="outline" onClick={handleSkipInit} disabled={isInitializing}>
+                  {t('common:buttons.skip', { ns: 'common' })}
+                </Button>
+                <Button
+                  onClick={handleInitialize}
+                  disabled={isInitializing || !settings.autoBuildPath}
+                >
+                  {isInitializing ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      {t('common:labels.initializing', { ns: 'common' })}
+                    </>
+                  ) : (
+                    <>
+                      <Download className="mr-2 h-4 w-4" />
+                      {t('common:buttons.initialize', { ns: 'common' })}
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
-        {/* Rate Limit Modal - shows when Claude Code hits usage limits (terminal) */}
-        <RateLimitModal />
+          {/* GitHub Setup Modal - shows after Kuroko-Ops init to configure GitHub */}
+          {gitHubSetupProject && (
+            <GitHubSetupModal
+              open={showGitHubSetup}
+              onOpenChange={setShowGitHubSetup}
+              project={gitHubSetupProject}
+              onComplete={handleGitHubSetupComplete}
+              onSkip={handleGitHubSetupSkip}
+            />
+          )}
 
-        {/* SDK Rate Limit Modal - shows when SDK/CLI operations hit limits (changelog, tasks, etc.) */}
-        <SDKRateLimitModal />
+          {/* Remove Project Confirmation Dialog */}
+          <Dialog open={showRemoveProjectDialog} onOpenChange={(open) => {
+            if (!open) handleCancelRemoveProject();
+          }}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{t('removeProject.title')}</DialogTitle>
+                <DialogDescription>
+                  {t('removeProject.description', { projectName: projectToRemove?.name || '' })}
+                </DialogDescription>
+              </DialogHeader>
+              {removeProjectError && (
+                <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  <span>{removeProjectError}</span>
+                </div>
+              )}
+              <DialogFooter>
+                <Button variant="outline" onClick={handleCancelRemoveProject}>
+                  {t('removeProject.cancel')}
+                </Button>
+                <Button variant="destructive" onClick={handleConfirmRemoveProject}>
+                  {t('removeProject.remove')}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
-        {/* Auth Failure Modal - shows when Claude CLI encounters 401/auth errors */}
-        <AuthFailureModal onOpenSettings={() => {
-          setSettingsInitialSection('accounts');
-          setIsSettingsDialogOpen(true);
-        }} />
+          {/* Rate Limit Modal - shows when Claude Code hits usage limits (terminal) */}
+          <RateLimitModal />
 
-        {/* Version Warning Modal - one-time notice for 2.7.5 re-authentication */}
-        <VersionWarningModal
-          isOpen={isVersionWarningModalOpen}
-          onClose={handleVersionWarningClose}
-          onOpenSettings={() => {
-            handleVersionWarningClose();
+          {/* SDK Rate Limit Modal - shows when SDK/CLI operations hit limits (changelog, tasks, etc.) */}
+          <SDKRateLimitModal />
+
+          {/* Auth Failure Modal - shows when Claude CLI encounters 401/auth errors */}
+          <AuthFailureModal onOpenSettings={() => {
             setSettingsInitialSection('accounts');
             setIsSettingsDialogOpen(true);
-          }}
-        />
+          }} />
 
-        {/* Onboarding Wizard - shows on first launch when onboardingCompleted is false */}
-        <OnboardingWizard
-          open={isOnboardingWizardOpen}
-          onOpenChange={setIsOnboardingWizardOpen}
-          onOpenTaskCreator={() => {
-            setIsOnboardingWizardOpen(false);
-            setIsNewTaskDialogOpen(true);
-          }}
-          onOpenSettings={() => {
-            setIsOnboardingWizardOpen(false);
-            setIsSettingsDialogOpen(true);
-          }}
-        />
+          {/* Version Warning Modal - one-time notice for 2.7.5 re-authentication */}
+          <VersionWarningModal
+            isOpen={isVersionWarningModalOpen}
+            onClose={handleVersionWarningClose}
+            onOpenSettings={() => {
+              handleVersionWarningClose();
+              setSettingsInitialSection('accounts');
+              setIsSettingsDialogOpen(true);
+            }}
+          />
 
-        {/* App Update Notification - shows when new app version is available */}
-        <AppUpdateNotification />
+          {/* Onboarding Wizard - shows on first launch when onboardingCompleted is false */}
+          <OnboardingWizard
+            open={isOnboardingWizardOpen}
+            onOpenChange={setIsOnboardingWizardOpen}
+            onOpenTaskCreator={() => {
+              setIsOnboardingWizardOpen(false);
+              setIsNewTaskDialogOpen(true);
+            }}
+            onOpenSettings={() => {
+              setIsOnboardingWizardOpen(false);
+              setIsSettingsDialogOpen(true);
+            }}
+          />
 
-        {/* Global Download Indicator - shows Ollama model download progress */}
-        <GlobalDownloadIndicator />
+          {/* App Update Notification - shows when new app version is available */}
+          <AppUpdateNotification />
 
-        {/* Toast notifications */}
-        <Toaster />
-      </div>
+          {/* Global Download Indicator - shows Ollama model download progress */}
+          <GlobalDownloadIndicator />
+
+          {/* Tool Approval Modal */}
+          <ToolApprovalModal />
+
+          {/* Toast notifications */}
+          <Toaster />
+        </div>
       </TooltipProvider>
     </ViewStateProvider>
   );

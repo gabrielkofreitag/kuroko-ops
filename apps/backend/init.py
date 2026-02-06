@@ -1,7 +1,7 @@
 """
-Auto Claude project initialization utilities.
+Kuroko-Ops project initialization utilities.
 
-Handles first-time setup of .auto-claude directory and ensures proper gitignore configuration.
+Handles first-time setup of .kuroko-ops directory and ensures proper gitignore configuration.
 """
 
 import logging
@@ -13,12 +13,12 @@ from core.git_executable import get_git_executable
 
 logger = logging.getLogger(__name__)
 
-# All entries that should be added to .gitignore for auto-claude projects
+# All entries that should be added to .gitignore for kuroko-ops projects
 AUTO_CLAUDE_GITIGNORE_ENTRIES = [
-    ".auto-claude/",
-    ".auto-claude-security.json",
-    ".auto-claude-status",
-    ".claude_settings.json",
+    ".kuroko-ops/",
+    ".kuroko-ops-security.json",
+    ".kuroko-ops-status",
+    ".kuroko_settings.json",
     ".worktrees/",
     ".security-key",
     "logs/security/",
@@ -40,7 +40,7 @@ def _entry_exists_in_gitignore(lines: list[str], entry: str) -> bool:
     return False
 
 
-def ensure_gitignore_entry(project_dir: Path, entry: str = ".auto-claude/") -> bool:
+def ensure_gitignore_entry(project_dir: Path, entry: str = ".kuroko-ops/") -> bool:
     """
     Ensure an entry exists in the project's .gitignore file.
 
@@ -48,7 +48,7 @@ def ensure_gitignore_entry(project_dir: Path, entry: str = ".auto-claude/") -> b
 
     Args:
         project_dir: The project root directory
-        entry: The gitignore entry to add (default: ".auto-claude/")
+        entry: The gitignore entry to add (default: ".kuroko-ops/")
 
     Returns:
         True if entry was added, False if it already existed
@@ -139,7 +139,7 @@ def _commit_gitignore(project_dir: Path) -> bool:
                 "commit",
                 ".gitignore",
                 "-m",
-                "chore: add auto-claude entries to .gitignore",
+                "chore: add kuroko-ops entries to .gitignore",
             ],
             cwd=project_dir,
             capture_output=True,
@@ -161,7 +161,7 @@ def ensure_all_gitignore_entries(
     project_dir: Path, auto_commit: bool = False
 ) -> list[str]:
     """
-    Ensure all auto-claude related entries exist in the project's .gitignore file.
+    Ensure all kuroko-ops related entries exist in the project's .gitignore file.
 
     Creates .gitignore if it doesn't exist.
 
@@ -219,9 +219,9 @@ def ensure_all_gitignore_entries(
 
 def init_auto_claude_dir(project_dir: Path) -> tuple[Path, bool]:
     """
-    Initialize the .auto-claude directory for a project.
+    Initialize the .kuroko-ops directory for a project.
 
-    Creates the directory if needed and ensures all auto-claude files are in .gitignore.
+    Creates the directory if needed and ensures all kuroko-ops files are in .gitignore.
 
     Args:
         project_dir: The project root directory
@@ -230,13 +230,13 @@ def init_auto_claude_dir(project_dir: Path) -> tuple[Path, bool]:
         Tuple of (auto_claude_dir path, gitignore_was_updated)
     """
     project_dir = Path(project_dir)
-    auto_claude_dir = project_dir / ".auto-claude"
+    auto_claude_dir = project_dir / ".kuroko-ops"
 
     # Create the directory if it doesn't exist
     dir_created = not auto_claude_dir.exists()
     auto_claude_dir.mkdir(parents=True, exist_ok=True)
 
-    # Ensure all auto-claude entries are in .gitignore (only on first creation)
+    # Ensure all kuroko-ops entries are in .gitignore (only on first creation)
     # FIX (#1087): Auto-commit the changes to prevent merge failures
     gitignore_updated = False
     if dir_created:
@@ -256,25 +256,25 @@ def init_auto_claude_dir(project_dir: Path) -> tuple[Path, bool]:
 
 def get_auto_claude_dir(project_dir: Path, ensure_exists: bool = True) -> Path:
     """
-    Get the .auto-claude directory path, optionally ensuring it exists.
+    Get the .kuroko-ops directory path, optionally ensuring it exists.
 
     Args:
         project_dir: The project root directory
         ensure_exists: If True, create directory and update gitignore if needed
 
     Returns:
-        Path to the .auto-claude directory
+        Path to the .kuroko-ops directory
     """
     if ensure_exists:
         auto_claude_dir, _ = init_auto_claude_dir(project_dir)
         return auto_claude_dir
 
-    return Path(project_dir) / ".auto-claude"
+    return Path(project_dir) / ".kuroko-ops"
 
 
 def repair_gitignore(project_dir: Path) -> list[str]:
     """
-    Repair an existing project's .gitignore to include all auto-claude entries.
+    Repair an existing project's .gitignore to include all kuroko-ops entries.
 
     This is useful for projects created before all entries were being added,
     or when gitignore entries were manually removed.
@@ -289,7 +289,7 @@ def repair_gitignore(project_dir: Path) -> list[str]:
         List of entries that were added (empty if all already existed)
     """
     project_dir = Path(project_dir)
-    auto_claude_dir = project_dir / ".auto-claude"
+    auto_claude_dir = project_dir / ".kuroko-ops"
 
     # Remove the marker file so future checks will also run
     marker = auto_claude_dir / ".gitignore_checked"

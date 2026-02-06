@@ -41,11 +41,11 @@ import { ChatHistorySidebar } from './ChatHistorySidebar';
 import { InsightsModelSelector } from './InsightsModelSelector';
 import type { InsightsChatMessage, InsightsModelConfig } from '../../shared/types';
 import {
-  TASK_CATEGORY_LABELS,
-  TASK_CATEGORY_COLORS,
   TASK_COMPLEXITY_LABELS,
   TASK_COMPLEXITY_COLORS
 } from '../../shared/constants';
+import { ModelStatusBadge } from './ModelStatusBadge';
+import { useLLMProfileStore } from '../stores/llm-profile-store';
 
 // createSafeLink - factory function that creates a SafeLink component with i18n support
 const createSafeLink = (opensInNewWindowText: string) => {
@@ -95,6 +95,8 @@ export function Insights({ projectId }: InsightsProps) {
   const streamingContent = useInsightsStore((state) => state.streamingContent);
   const currentTool = useInsightsStore((state) => state.currentTool);
   const isLoadingSessions = useInsightsStore((state) => state.isLoadingSessions);
+  const activeProfileId = useLLMProfileStore((state) => state.activeProfileId);
+  const activeProfile = useLLMProfileStore((state) => state.profiles.find((p) => p.id === activeProfileId));
 
   // Create markdown components with translated accessibility text
   const markdownComponents = useMemo(() => ({
@@ -274,21 +276,30 @@ export function Insights({ projectId }: InsightsProps) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <InsightsModelSelector
-              currentConfig={session?.modelConfig}
-              onConfigChange={handleModelConfigChange}
-              disabled={isLoading}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleNewSession}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              New Chat
-            </Button>
+            <span className="text-xs text-muted-foreground">Active Connection:</span>
+            {activeProfile ? (
+              <ModelStatusBadge profile={activeProfile} showLabel />
+            ) : (
+              <Badge variant="outline" className="text-[10px] font-mono py-0 h-5">
+                Default
+              </Badge>
+            )}
           </div>
+          <InsightsModelSelector
+            currentConfig={session?.modelConfig}
+            onConfigChange={handleModelConfigChange}
+            disabled={isLoading}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNewSession}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New Chat
+          </Button>
         </div>
+      </div>
 
       {/* Messages */}
       <ScrollArea
@@ -420,8 +431,8 @@ export function Insights({ projectId }: InsightsProps) {
           Press Enter to send, Shift+Enter for new line
         </p>
       </div>
-      </div>
     </div>
+    </div >
   );
 }
 

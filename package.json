@@ -1,9 +1,9 @@
 {
-  "name": "auto-claude",
-  "version": "2.7.6-beta.2",
-  "description": "Autonomous multi-agent coding framework powered by Claude AI",
+  "name": "kuroko-ops",
+  "version": "0.1.0",
+  "description": "Multi-LLM agentic framework, Docker-first, MUI v6",
   "license": "AGPL-3.0",
-  "author": "Auto Claude Team",
+  "author": "Kuroko Team",
   "workspaces": [
     "apps/*",
     "libs/*"
@@ -31,7 +31,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/AndyMik90/Auto-Claude.git"
+    "url": "https://github.com/gabriel/kuroko-ops.git"
   },
   "keywords": [
     "ai",

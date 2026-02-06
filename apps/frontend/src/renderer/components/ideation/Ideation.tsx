@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { TabsContent } from '../ui/tabs';
 import { EnvConfigModal } from '../EnvConfigModal';
 import { IDEATION_TYPE_DESCRIPTIONS } from '../../../shared/constants';
@@ -11,6 +12,19 @@ import { IdeaDetailPanel } from './IdeaDetailPanel';
 import { useIdeation } from './hooks/useIdeation';
 import { useViewState } from '../../contexts/ViewStateContext';
 import { ALL_IDEATION_TYPES } from './constants';
+import { ChatHistorySidebar } from '../ChatHistorySidebar';
+import {
+  useInsightsStore,
+  loadInsightsSessions,
+  newSession as createNewSession,
+  switchSession,
+  deleteSession,
+  renameSession
+} from '../../stores/insights-store';
+import { useWorkspaceStore } from '../../stores/workspace-store';
+import { GitBranch, MapPin, Trash2, FolderOpen } from 'lucide-react';
+import { Separator } from '../ui/separator';
+import { Badge } from '../ui/badge';
 
 interface IdeationProps {
   projectId: string;
@@ -18,6 +32,16 @@ interface IdeationProps {
 }
 
 export function Ideation({ projectId, onGoToTask }: IdeationProps) {
+  // Session Browser Integration
+  const insightsSessions = useInsightsStore(s => s.sessions);
+  const currentSession = useInsightsStore(s => s.session);
+  const isLoadingSessions = useInsightsStore(s => s.isLoadingSessions);
+  const workspaceStatus = useWorkspaceStore(s => s.status); // Added line
+
+  useEffect(() => {
+    loadInsightsSessions(projectId);
+  }, [projectId]);
+
   // Get showArchived from shared context for cross-page sync
   const { showArchived } = useViewState();
 
@@ -66,7 +90,8 @@ export function Ideation({ projectId, onGoToTask }: IdeationProps) {
     toggleIdeationType,
     toggleSelectIdea,
     clearSelection,
-    getIdeasByType
+    getIdeasByType,
+    activeProfile // Added activeProfile
   } = useIdeation(projectId, { onGoToTask, showArchived });
 
   // Show generation progress with streaming ideas (use isGenerating flag for reliable state)
@@ -108,11 +133,11 @@ export function Ideation({ projectId, onGoToTask }: IdeationProps) {
           typesToAdd={[]}
           availableTypesToAdd={[]}
           onToggleIdeationType={toggleIdeationType}
-          onToggleTypeToAdd={() => {}}
+          onToggleTypeToAdd={() => { }}
           onSetConfig={setConfig}
           onCloseConfigDialog={() => setShowConfigDialog(false)}
-          onCloseAddMoreDialog={() => {}}
-          onConfirmAddMore={() => {}}
+          onCloseAddMoreDialog={() => { }}
+          onConfirmAddMore={() => { }}
         />
 
         <EnvConfigModal
@@ -128,124 +153,149 @@ export function Ideation({ projectId, onGoToTask }: IdeationProps) {
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      {/* Header */}
-      <IdeationHeader
-        totalIdeas={summary.totalIdeas}
-        ideaCountByType={summary.byType}
-        showDismissed={showDismissed}
-        selectedCount={selectedIds.size}
-        onToggleShowDismissed={() => setShowDismissed(!showDismissed)}
-        onOpenConfig={() => setShowConfigDialog(true)}
-        onOpenAddMore={() => {
-          setTypesToAdd([]);
-          setShowAddMoreDialog(true);
-        }}
-        onDismissAll={handleDismissAll}
-        onDeleteSelected={handleDeleteSelected}
-        onSelectAll={() => handleSelectAll(activeIdeas)}
-        onClearSelection={clearSelection}
-        onRefresh={handleRefresh}
-        hasActiveIdeas={activeIdeas.length > 0}
-        canAddMore={getAvailableTypesToAdd().length > 0}
+    <div className="h-full flex overflow-hidden">
+      {/* Session History Sidebar */}
+      <ChatHistorySidebar
+        sessions={insightsSessions}
+        currentSessionId={currentSession?.id || null}
+        isLoading={isLoadingSessions}
+        onNewSession={() => createNewSession(projectId)}
+        onSelectSession={(id) => switchSession(projectId, id)}
+        onDeleteSession={(id) => deleteSession(projectId, id)}
+        onRenameSession={(id, title) => renameSession(projectId, id, title)}
       />
 
-      {/* Content */}
-      <div className="flex-1 overflow-hidden">
-        <IdeationFilters activeTab={activeTab} onTabChange={setActiveTab}>
-          {/* All Ideas View */}
-          <TabsContent value="all" className="flex-1 overflow-auto p-4">
-            <div className="grid gap-3">
-              {activeIdeas.map((idea) => (
-                <IdeaCard
-                  key={idea.id}
-                  idea={idea}
-                  isSelected={selectedIds.has(idea.id)}
-                  onClick={() => setSelectedIdea(selectedIdea?.id === idea.id ? null : idea)}
-                  onConvert={handleConvertToTask}
-                  onGoToTask={handleGoToTask}
-                  onDismiss={handleDismiss}
-                  onToggleSelect={toggleSelectIdea}
-                />
-              ))}
-              {activeIdeas.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  No ideas to display
-                </div>
-              )}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Header */}
+        <IdeationHeader
+          totalIdeas={summary.totalIdeas}
+          ideaCountByType={summary.byType}
+          showDismissed={showDismissed}
+          selectedCount={selectedIds.size}
+          onToggleShowDismissed={() => setShowDismissed(!showDismissed)}
+          onOpenConfig={() => setShowConfigDialog(true)}
+          onOpenAddMore={() => {
+            setTypesToAdd([]);
+            setShowAddMoreDialog(true);
+          }}
+          onDismissAll={handleDismissAll}
+          onDeleteSelected={handleDeleteSelected}
+          onSelectAll={() => handleSelectAll(activeIdeas)}
+          onClearSelection={clearSelection}
+          onRefresh={handleRefresh}
+          hasActiveIdeas={activeIdeas.length > 0}
+          canAddMore={getAvailableTypesToAdd().length > 0}
+          activeProfile={activeProfile}
+        >
+          {/* Workspace Status */}
+          {workspaceStatus.active && (
+            <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-primary">
+              <GitBranch className="h-3 w-3" />
+              <span>{workspaceStatus.branch}</span>
+              <Separator orientation="vertical" className="h-3 bg-primary/20" />
+              <MapPin className="h-3 w-3 opacity-70" />
+              <span className="opacity-70 truncate max-w-[150px]">{workspaceStatus.path?.split(/[\\/]/).pop()}</span>
             </div>
-          </TabsContent>
+          )}
+        </IdeationHeader>
 
-          {/* Type-specific Views */}
-          {ALL_IDEATION_TYPES.map((type) => {
-            const typeIdeas = getIdeasByType(type).filter((idea) => {
-              if (!showDismissed && idea.status === 'dismissed') return false;
-              if (!showArchived && idea.status === 'archived') return false;
-              return true;
-            });
-            return (
-              <TabsContent key={type} value={type} className="flex-1 overflow-auto p-4">
-                <div className="mb-4 p-3 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">
-                    {IDEATION_TYPE_DESCRIPTIONS[type]}
-                  </p>
-                </div>
-                <div className="grid gap-3">
-                  {typeIdeas.map((idea) => (
-                    <IdeaCard
-                      key={idea.id}
-                      idea={idea}
-                      isSelected={selectedIds.has(idea.id)}
-                      onClick={() => setSelectedIdea(selectedIdea?.id === idea.id ? null : idea)}
-                      onConvert={handleConvertToTask}
-                      onGoToTask={handleGoToTask}
-                      onDismiss={handleDismiss}
-                      onToggleSelect={toggleSelectIdea}
-                    />
-                  ))}
-                </div>
-              </TabsContent>
-            );
-          })}
-        </IdeationFilters>
-      </div>
+        {/* Content */}
+        <div className="flex-1 overflow-hidden">
+          <IdeationFilters activeTab={activeTab} onTabChange={setActiveTab}>
+            {/* All Ideas View */}
+            <TabsContent value="all" className="flex-1 overflow-auto p-4">
+              <div className="grid gap-3">
+                {activeIdeas.map((idea) => (
+                  <IdeaCard
+                    key={idea.id}
+                    idea={idea}
+                    isSelected={selectedIds.has(idea.id)}
+                    onClick={() => setSelectedIdea(selectedIdea?.id === idea.id ? null : idea)}
+                    onConvert={handleConvertToTask}
+                    onGoToTask={handleGoToTask}
+                    onDismiss={handleDismiss}
+                    onToggleSelect={toggleSelectIdea}
+                  />
+                ))}
+                {activeIdeas.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No ideas to display
+                  </div>
+                )}
+              </div>
+            </TabsContent>
 
-      {/* Idea Detail Panel */}
-      {selectedIdea && (
-        <IdeaDetailPanel
-          idea={selectedIdea}
-          onClose={() => setSelectedIdea(null)}
-          onConvert={handleConvertToTask}
-          onGoToTask={handleGoToTask}
-          onDismiss={handleDismiss}
-          isConverting={convertingIdeas.has(selectedIdea.id)}
+            {/* Type-specific Views */}
+            {ALL_IDEATION_TYPES.map((type) => {
+              const typeIdeas = getIdeasByType(type).filter((idea) => {
+                if (!showDismissed && idea.status === 'dismissed') return false;
+                if (!showArchived && idea.status === 'archived') return false;
+                return true;
+              });
+              return (
+                <TabsContent key={type} value={type} className="flex-1 overflow-auto p-4">
+                  <div className="mb-4 p-3 bg-muted/50 rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      {IDEATION_TYPE_DESCRIPTIONS[type]}
+                    </p>
+                  </div>
+                  <div className="grid gap-3">
+                    {typeIdeas.map((idea) => (
+                      <IdeaCard
+                        key={idea.id}
+                        idea={idea}
+                        isSelected={selectedIds.has(idea.id)}
+                        onClick={() => setSelectedIdea(selectedIdea?.id === idea.id ? null : idea)}
+                        onConvert={handleConvertToTask}
+                        onGoToTask={handleGoToTask}
+                        onDismiss={handleDismiss}
+                        onToggleSelect={toggleSelectIdea}
+                      />
+                    ))}
+                  </div>
+                </TabsContent>
+              );
+            })}
+          </IdeationFilters>
+        </div>
+
+        {/* Idea Detail Panel */}
+        {selectedIdea && (
+          <IdeaDetailPanel
+            idea={selectedIdea}
+            onClose={() => setSelectedIdea(null)}
+            onConvert={handleConvertToTask}
+            onGoToTask={handleGoToTask}
+            onDismiss={handleDismiss}
+            isConverting={convertingIdeas.has(selectedIdea.id)}
+          />
+        )}
+
+        {/* Dialogs */}
+        <IdeationDialogs
+          showConfigDialog={showConfigDialog}
+          showAddMoreDialog={showAddMoreDialog}
+          config={config}
+          typesToAdd={typesToAdd}
+          availableTypesToAdd={getAvailableTypesToAdd()}
+          onToggleIdeationType={toggleIdeationType}
+          onToggleTypeToAdd={toggleTypeToAdd}
+          onSetConfig={setConfig}
+          onCloseConfigDialog={() => setShowConfigDialog(false)}
+          onCloseAddMoreDialog={() => setShowAddMoreDialog(false)}
+          onConfirmAddMore={handleAddMoreIdeas}
         />
-      )}
 
-      {/* Dialogs */}
-      <IdeationDialogs
-        showConfigDialog={showConfigDialog}
-        showAddMoreDialog={showAddMoreDialog}
-        config={config}
-        typesToAdd={typesToAdd}
-        availableTypesToAdd={getAvailableTypesToAdd()}
-        onToggleIdeationType={toggleIdeationType}
-        onToggleTypeToAdd={toggleTypeToAdd}
-        onSetConfig={setConfig}
-        onCloseConfigDialog={() => setShowConfigDialog(false)}
-        onCloseAddMoreDialog={() => setShowAddMoreDialog(false)}
-        onConfirmAddMore={handleAddMoreIdeas}
-      />
-
-      {/* Environment Configuration Modal */}
-      <EnvConfigModal
-        open={showEnvConfigModal}
-        onOpenChange={setShowEnvConfigModal}
-        onConfigured={handleEnvConfigured}
-        title="Claude Authentication Required"
-        description="A Claude Code OAuth token is required to generate AI-powered feature ideas."
-        projectId={projectId}
-      />
+        {/* Environment Configuration Modal */}
+        <EnvConfigModal
+          open={showEnvConfigModal}
+          onOpenChange={setShowEnvConfigModal}
+          onConfigured={handleEnvConfigured}
+          title="Claude Authentication Required"
+          description="A Claude Code OAuth token is required to generate AI-powered feature ideas."
+          projectId={projectId}
+        />
+      </div>
     </div>
   );
 }

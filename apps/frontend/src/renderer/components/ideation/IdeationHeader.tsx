@@ -6,6 +6,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { IDEATION_TYPE_COLORS } from '../../../shared/constants';
 import type { IdeationType } from '../../../shared/types';
 import { TypeIcon } from './TypeIcon';
+import { ModelStatusBadge } from '../ModelStatusBadge';
+import { LLMProfile } from '../../stores/llm-profile-store';
 
 interface IdeationHeaderProps {
   totalIdeas: number;
@@ -22,6 +24,8 @@ interface IdeationHeaderProps {
   onRefresh: () => void;
   hasActiveIdeas: boolean;
   canAddMore: boolean;
+  activeProfile?: LLMProfile | null;
+  children?: React.ReactNode;
 }
 
 export function IdeationHeader({
@@ -38,7 +42,9 @@ export function IdeationHeader({
   onClearSelection,
   onRefresh,
   hasActiveIdeas,
-  canAddMore
+  canAddMore,
+  activeProfile,
+  children
 }: IdeationHeaderProps) {
   const { t } = useTranslation('common');
   const hasSelection = selectedCount > 0;
@@ -54,6 +60,16 @@ export function IdeationHeader({
           <p className="text-sm text-muted-foreground">
             AI-generated feature ideas for your project
           </p>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Model:</span>
+            {activeProfile ? (
+              <ModelStatusBadge profile={activeProfile} showLabel />
+            ) : (
+              <Badge variant="outline" className="text-[10px] font-mono py-0 h-5">
+                Select Model
+              </Badge>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {/* Selection controls */}
@@ -175,18 +191,21 @@ export function IdeationHeader({
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="mt-4 flex items-center gap-4">
-        {Object.entries(ideaCountByType).map(([type, count]) => (
-          <Badge
-            key={type}
-            variant="outline"
-            className={IDEATION_TYPE_COLORS[type]}
-          >
-            <TypeIcon type={type as IdeationType} />
-            <span className="ml-1">{count}</span>
-          </Badge>
-        ))}
+      {/* Stats and children */}
+      <div className="mt-4 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          {Object.entries(ideaCountByType).map(([type, count]) => (
+            <Badge
+              key={type}
+              variant="outline"
+              className={IDEATION_TYPE_COLORS[type]}
+            >
+              <TypeIcon type={type as IdeationType} />
+              <span className="ml-1">{count}</span>
+            </Badge>
+          ))}
+        </div>
+        {children}
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ import { RoadmapTabs } from './roadmap/RoadmapTabs';
 import { FeatureDetailPanel } from './roadmap/FeatureDetailPanel';
 import { useRoadmapData, useFeatureActions, useRoadmapGeneration, useRoadmapSave, useFeatureDelete } from './roadmap/hooks';
 import { getCompetitorInsightsForFeature } from './roadmap/utils';
+import { useLLMProfileStore } from '../stores/llm-profile-store';
 import type { RoadmapFeature } from '../../shared/types';
 import type { RoadmapProps } from './roadmap/types';
 
@@ -42,6 +43,9 @@ export function Roadmap({ projectId, onGoToTask }: RoadmapProps) {
     handleCompetitorDialogDecline,
     handleStop,
   } = useRoadmapGeneration(projectId);
+
+  const activeProfileId = useLLMProfileStore((state) => state.activeProfileId);
+  const activeProfile = useLLMProfileStore((state) => state.profiles.find((p) => p.id === activeProfileId));
 
   // Event handlers
   const handleConvertToSpec = async (feature: RoadmapFeature) => {
@@ -102,6 +106,7 @@ export function Roadmap({ projectId, onGoToTask }: RoadmapProps) {
         onAddFeature={() => setShowAddFeatureDialog(true)}
         onRefresh={handleRefresh}
         onViewCompetitorAnalysis={() => setShowCompetitorViewer(true)}
+        activeProfile={activeProfile}
       />
 
       {/* Content */}

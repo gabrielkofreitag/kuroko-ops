@@ -18,6 +18,7 @@ import {
 } from '../../../stores/ideation-store';
 import { loadTasks } from '../../../stores/task-store';
 import { useIdeationAuth } from './useIdeationAuth';
+import { useLLMProfileStore } from '../../../stores/llm-profile-store';
 import type { Idea, IdeationType } from '../../../../shared/types';
 import { ALL_IDEATION_TYPES } from '../constants';
 
@@ -56,6 +57,8 @@ export function useIdeation(projectId: string, options: UseIdeationOptions = {})
   const convertingIdeaRef = useRef<Set<string>>(new Set());
 
   const { hasToken, isLoading: isCheckingToken, checkAuth } = useIdeationAuth();
+  const activeProfileId = useLLMProfileStore((state) => state.activeProfileId);
+  const activeProfile = useLLMProfileStore((state) => state.profiles.find((p) => p.id === activeProfileId));
 
   // Set up IPC listeners and load ideation on mount
   useEffect(() => {
@@ -266,6 +269,7 @@ export function useIdeation(projectId: string, options: UseIdeationOptions = {})
     archivedIdeas,
     selectedIds,
     convertingIdeas,
+    activeProfile,
 
     // Actions
     setSelectedIdea,

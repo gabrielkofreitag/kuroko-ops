@@ -7,7 +7,7 @@
   "sections": {
     "appearance": {
       "title": "Appearance",
-      "description": "Customize how Auto Claude looks"
+      "description": "Customize how Kuroko-Ops looks"
     },
     "display": {
       "title": "Display",
@@ -35,7 +35,7 @@
     },
     "updates": {
       "title": "Updates",
-      "description": "Auto Claude updates"
+      "description": "Kuroko-Ops updates"
     },
     "notifications": {
       "title": "Notifications",
@@ -196,7 +196,7 @@
     "otherAgentSettingsDescription": "Additional agent configuration options",
     "agentFramework": "Agent Framework",
     "agentFrameworkDescription": "The coding framework used for autonomous tasks",
-    "agentFrameworkAutoClaude": "Auto Claude",
+    "agentFrameworkAutoClaude": "Kuroko-Ops",
     "aiTerminalNaming": "AI Terminal Naming",
     "aiTerminalNamingDescription": "Automatically name terminals based on commands (uses Haiku)",
     "featureModelSettings": "Feature Model Settings",
@@ -232,8 +232,8 @@
     "sourceFallback": "Fallback",
     "notDetected": "Not detected",
     "autoClaudePath": "Auto Claude Path",
-    "autoClaudePathDescription": "Relative path to auto-claude directory in projects",
-    "autoClaudePathPlaceholder": "auto-claude (default)",
+    "autoClaudePathDescription": "Relative path to .kuroko-ops directory in projects",
+    "autoClaudePathPlaceholder": ".kuroko-ops (default)",
     "autoNameTerminals": "Automatically name terminals",
     "autoNameTerminalsDescription": "Use AI to generate descriptive names for terminal tabs based on their activity"
   },
@@ -630,7 +630,7 @@
     "description": "Access logs and debug information for troubleshooting",
     "errorReporting": {
       "label": "Anonymous Error Reporting",
-      "description": "Send crash reports to help improve Auto Claude. No personal data or code is collected."
+      "description": "Send crash reports to help improve Kuroko-Ops. No personal data or code is collected."
     },
     "openLogsFolder": "Open Logs Folder",
     "copyDebugInfo": "Copy Debug Info",

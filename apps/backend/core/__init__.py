@@ -14,6 +14,8 @@ __all__ = [
     "WorkspaceManager",
     "WorktreeManager",
     "ProgressTracker",
+    "LLMClient",
+    "AsyncLLMClient",
 ]
 
 
@@ -35,6 +37,12 @@ def __getattr__(name):
         from .progress import ProgressTracker
 
         return ProgressTracker
+    elif name == "LLMClient":
+        from .llm_client import LLMClient
+        return LLMClient
+    elif name == "AsyncLLMClient":
+        from .async_llm_client import AsyncLLMClient
+        return AsyncLLMClient
     elif name in ("create_claude_client", "ClaudeClient"):
         from . import client as _client
 

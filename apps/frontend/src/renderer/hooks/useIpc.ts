@@ -5,6 +5,7 @@ import { useRoadmapStore } from '../stores/roadmap-store';
 import { useRateLimitStore } from '../stores/rate-limit-store';
 import { useAuthFailureStore } from '../stores/auth-failure-store';
 import { useProjectStore } from '../stores/project-store';
+import { useWorkspaceStore } from '../stores/workspace-store';
 import type { ImplementationPlan, TaskStatus, RoadmapGenerationStatus, Roadmap, ExecutionProgress, RateLimitInfo, SDKRateLimitInfo, AuthFailureInfo } from '../../shared/types';
 
 /**
@@ -356,6 +357,19 @@ export function useIpcListeners(): void {
       }
     );
 
+    const cleanupThought = window.electronAPI.onTaskThought?.((taskId: string, thought: any) => {
+      useTaskStore.setState({ lastMessage: { type: 'thought', ...thought, taskId } });
+    });
+
+    // Workspace & Tool Approval listeners
+    const cleanupToolApproval = window.electronAPI.onToolApprovalRequest?.((request: any) => {
+      useWorkspaceStore.getState().addApprovalRequest(request);
+    });
+
+    const cleanupWorkspaceStatus = window.electronAPI.onWorkspaceStatusUpdate?.((status: any) => {
+      useWorkspaceStore.getState().setStatus(status);
+    });
+
     // Cleanup on unmount
     return () => {
       // Flush any pending batched updates before cleanup
@@ -376,6 +390,9 @@ export function useIpcListeners(): void {
       cleanupRateLimit();
       cleanupSDKRateLimit();
       cleanupAuthFailure();
+      if (cleanupThought) cleanupThought();
+      if (cleanupToolApproval) cleanupToolApproval();
+      if (cleanupWorkspaceStatus) cleanupWorkspaceStatus();
     };
   }, [appendLog, setError]);
 }

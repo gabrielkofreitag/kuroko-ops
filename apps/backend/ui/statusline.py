@@ -3,7 +3,7 @@
 Status Line Provider for ccstatusline Integration
 =================================================
 
-Provides compact, real-time build status for display in Claude Code's status line
+Provides compact, real-time build status for display in Kuroko-Ops's status line
 via ccstatusline's Custom Command widget.
 
 Usage:
@@ -24,7 +24,7 @@ ccstatusline Configuration:
         "widgets": [
             {
                 "type": "custom_command",
-                "command": "python /path/to/auto-claude/statusline.py",
+                "command": "python /path/to/kuroko-ops/statusline.py",
                 "refresh": 5000
             }
         ]
@@ -36,7 +36,7 @@ import json
 import sys
 from pathlib import Path
 
-# Add auto-claude to path
+# Add kuroko-ops to path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from ui import (
@@ -50,20 +50,20 @@ from ui import (
 
 
 def find_project_root() -> Path:
-    """Find the project root by looking for .auto-claude or .auto-claude-status."""
+    """Find the project root by looking for .kuroko-ops or .kuroko-ops-status."""
     cwd = Path.cwd()
 
-    # Check current directory - prioritize .auto-claude (installed instance)
-    if (cwd / ".auto-claude").exists():
+    # Check current directory - prioritize .kuroko-ops (installed instance)
+    if (cwd / ".kuroko-ops").exists():
         return cwd
-    if (cwd / ".auto-claude-status").exists():
+    if (cwd / ".kuroko-ops-status").exists():
         return cwd
 
     # Walk up to find project root
     for parent in cwd.parents:
-        if (parent / ".auto-claude").exists():
+        if (parent / ".kuroko-ops").exists():
             return parent
-        if (parent / ".auto-claude-status").exists():
+        if (parent / ".kuroko-ops-status").exists():
             return parent
 
     return cwd

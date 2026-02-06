@@ -5,9 +5,18 @@ import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { getFeatureStats } from '../../stores/roadmap-store';
 import { ROADMAP_PRIORITY_COLORS } from '../../../shared/constants';
+import { ModelStatusBadge } from '../ModelStatusBadge';
+import { useLLMProfileStore } from '../../stores/llm-profile-store';
 import type { RoadmapHeaderProps } from './types';
 
-export function RoadmapHeader({ roadmap, competitorAnalysis, onAddFeature, onRefresh, onViewCompetitorAnalysis }: RoadmapHeaderProps) {
+export function RoadmapHeader({
+  roadmap,
+  competitorAnalysis,
+  onAddFeature,
+  onRefresh,
+  onViewCompetitorAnalysis,
+  activeProfile
+}: RoadmapHeaderProps & { activeProfile?: any }) {
   const { t } = useTranslation('common');
   const stats = getFeatureStats(roadmap);
 
@@ -44,6 +53,16 @@ export function RoadmapHeader({ roadmap, competitorAnalysis, onAddFeature, onRef
             )}
           </div>
           <p className="text-sm text-muted-foreground max-w-xl">{roadmap.vision}</p>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Model:</span>
+            {activeProfile ? (
+              <ModelStatusBadge profile={activeProfile} showLabel />
+            ) : (
+              <Badge variant="outline" className="text-[10px] font-mono py-0 h-5">
+                Default
+              </Badge>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Tooltip>

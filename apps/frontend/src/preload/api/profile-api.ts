@@ -42,6 +42,11 @@ export interface ProfileAPI {
     apiKey: string,
     signal?: AbortSignal
   ) => Promise<IPCResult<DiscoverModelsResult>>;
+
+  // Combined verification helper
+  verifyLLMProfile: (
+    profile: APIProfile
+  ) => Promise<IPCResult<TestConnectionResult>>;
 }
 
 let testConnectionRequestId = 0;
@@ -140,5 +145,9 @@ export const createProfileAPI = (): ProfileAPI => ({
     const promise = ipcRenderer.invoke(channel, baseUrl, apiKey, requestId);
     console.log('[preload/profile-api] IPC invoke called, promise returned');
     return promise;
-  }
+  },
+
+  // Combined verification helper
+  verifyLLMProfile: (profile: APIProfile): Promise<IPCResult<TestConnectionResult>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.PROFILES_TEST_CONNECTION, profile.baseUrl, profile.apiKey, 9999) // Using fixed 9999 for background verification
 });

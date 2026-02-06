@@ -9,6 +9,7 @@ interface TaskState {
   isLoading: boolean;
   error: string | null;
   taskOrder: TaskOrderState | null;  // Per-column task ordering for kanban board
+  lastMessage: any | null; // Latest message from WebSocket (for thoughts, etc)
 
   // Actions
   setTasks: (tasks: Task[]) => void;
@@ -190,6 +191,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   isLoading: false,
   error: null,
   taskOrder: null,
+  lastMessage: null,
 
   setTasks: (tasks) => set({ tasks }),
 

@@ -309,26 +309,11 @@ async function migrateOnboardingCompleted(settings: AppSettings): Promise<AppSet
     return settings;
   }
 
-  // NEW: Check ~/.claude.json for hasCompletedOnboarding
-  // This allows Auto-Claude to respect Claude Code's onboarding status
-  try {
-    const claudeCodeResult = await window.electronAPI.getClaudeCodeOnboardingStatus();
-    if (claudeCodeResult.success && claudeCodeResult.data?.hasCompletedOnboarding) {
-      // Claude Code says onboarding is complete, respect that
-      return { ...settings, onboardingCompleted: true };
-    }
-  } catch (error) {
-    // If checking Claude Code onboarding fails, log and continue with existing logic
-    console.warn('[settings-store] Failed to check Claude Code onboarding status:', error);
-  }
-
   // Check for signs of an existing user:
-  // - Has a Claude OAuth token configured
   // - Has the auto-build source path configured
-  const hasOAuthToken = Boolean(settings.globalClaudeOAuthToken);
   const hasAutoBuildPath = Boolean(settings.autoBuildPath);
 
-  const isExistingUser = hasOAuthToken || hasAutoBuildPath;
+  const isExistingUser = hasAutoBuildPath;
 
   if (isExistingUser) {
     // Mark onboarding as completed for existing users

@@ -73,18 +73,8 @@ export const useInsightsStore = create<InsightsState>((set, _get) => ({
 
   addMessage: (message) =>
     set((state) => {
-      if (!state.session) {
-        // Create new session if none exists
-        return {
-          session: {
-            id: `session-${Date.now()}`,
-            projectId: '',
-            messages: [message],
-            createdAt: new Date(),
-            updatedAt: new Date()
-          }
-        };
-      }
+      // Logic for adding message is now handled via sendMessage which calls backend
+      if (!state.session) return state;
 
       return {
         session: {

@@ -1,96 +1,83 @@
-"""
-Base Module for Agent System
-=============================
-
-Shared imports, types, and constants used across agent modules.
-"""
-
 import logging
+import json
 import re
+from typing import List, Dict, Any, Optional
+from ..core.async_llm_client import AsyncLLMClient
+from ..core.models import LLMMessage, LLMResponse
+from ..core.tools.registry import registry as tool_registry
 
-# Configure logging
 logger = logging.getLogger(__name__)
 
-# Configuration constants
-AUTO_CONTINUE_DELAY_SECONDS = 3
-HUMAN_INTERVENTION_FILE = "PAUSE"
+from ..core.utils.tokens import truncate_messages
 
-# Retry configuration for 400 tool concurrency errors
-MAX_CONCURRENCY_RETRIES = 5  # Maximum number of retries for tool concurrency errors
-INITIAL_RETRY_DELAY_SECONDS = (
-    2  # Initial retry delay (doubles each retry: 2s, 4s, 8s, 16s, 32s)
-)
-MAX_RETRY_DELAY_SECONDS = 32  # Cap retry delay at 32 seconds
+class BaseAgent:
+    def __init__(
+        self, 
+        name: str, 
+        role: str, 
+        system_prompt: str,
+        api_key: Optional[str] = None,
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
+        max_context_tokens: int = 128000
+    ):
+        self.name = name
+        self.role = role
+        self.system_prompt = system_prompt + "\n\nAvailable tools:\n- read_file(path)\n- write_file(path, content)\n- run_command(command)\n\nTo use a tool, output: <tool_call name=\"tool_name\">{\"arg\": \"value\"}</tool_call>"
+        self.client = AsyncLLMClient(api_key=api_key, model=model, base_url=base_url)
+        self.max_context_tokens = max_context_tokens
+        self.messages: List[LLMMessage] = [
+            LLMMessage(role="system", content=self.system_prompt)
+        ]
 
-# Pause file constants for intelligent error recovery
-# These files signal pause/resume between frontend and backend
-RATE_LIMIT_PAUSE_FILE = "RATE_LIMIT_PAUSE"  # Created when rate limited
-AUTH_FAILURE_PAUSE_FILE = "AUTH_PAUSE"  # Created when auth fails
-RESUME_FILE = "RESUME"  # Created by frontend to signal resume
+    async def run(self, user_input: str, max_iterations: int = 5) -> str:
+        """Main execution loop for the agent with tool calling support"""
+        self.messages.append(LLMMessage(role="user", content=user_input))
+        
+        for i in range(max_iterations):
+            logger.info(f"Agent {self.name} iteration {i+1}")
+            
+            # Context Management: Sliding window
+            active_messages = truncate_messages(self.messages, self.max_context_tokens, self.client.model)
+            
+            response = await self.client.chat(active_messages)
+            content = response.content
+            self.messages.append(LLMMessage(role="assistant", content=content))
+            
+            # Check for tool calls
+            tool_call_match = re.search(r'<tool_call name="(.+?)">(.+?)</tool_call>', content, re.DOTALL)
+            if not tool_call_match:
+                return content # Final response
+                
+            tool_name = tool_call_match.group(1)
+            tool_args_str = tool_call_match.group(2)
+            
+            try:
+                tool_args = json.loads(tool_args_str)
+                print(f"[{self.name}] Calling tool {tool_name} with {tool_args}")
+                result = tool_registry.execute_tool(tool_name, tool_args)
+                self.messages.append(LLMMessage(role="user", content=f"Tool result: {result}"))
+            except Exception as e:
+                self.messages.append(LLMMessage(role="user", content=f"Error parsing tool args: {str(e)}"))
+        
+        return "Max iterations reached without a final response."
 
-# Maximum time to wait for rate limit reset (2 hours)
-# If reset time is beyond this, task should fail rather than wait indefinitely
-MAX_RATE_LIMIT_WAIT_SECONDS = 7200
+    def clear_history(self):
+        self.messages = [LLMMessage(role="system", content=self.system_prompt)]
 
-# Wait intervals for pause/resume checking
-RATE_LIMIT_CHECK_INTERVAL_SECONDS = (
-    30  # Check for RESUME file every 30 seconds during rate limit wait
-)
-AUTH_RESUME_CHECK_INTERVAL_SECONDS = 10  # Check for re-authentication every 10 seconds
-AUTH_RESUME_MAX_WAIT_SECONDS = 86400  # Maximum wait for re-authentication (24 hours)
+class CoderAgent(BaseAgent):
+    def __init__(self, **kwargs):
+        system_prompt = (
+            "You are Kuroko Coder, an expert software engineer. "
+            "Your goal is to implement features based on a specification. "
+            "Use tools to read existing code and write your implementation."
+        )
+        super().__init__(name="Coder", role="coder", system_prompt=system_prompt, **kwargs)
 
-
-def sanitize_error_message(error_message: str, max_length: int = 500) -> str:
-    """
-    Sanitize error messages to remove potentially sensitive information.
-
-    Redacts:
-    - API keys (sk-..., key-...)
-    - Bearer tokens
-    - Token/secret values
-
-    Args:
-        error_message: The raw error message to sanitize
-        max_length: Maximum length to truncate to (default 500)
-
-    Returns:
-        Sanitized and truncated error message
-    """
-    if not error_message:
-        return ""
-
-    # Redact patterns that look like API keys or tokens
-    # Pattern: sk-... (OpenAI/Anthropic keys like sk-ant-api03-...)
-    sanitized = re.sub(
-        r"\bsk-[a-zA-Z0-9._\-]{20,}\b", "[REDACTED_API_KEY]", error_message
-    )
-
-    # Pattern: key-... (generic API keys)
-    sanitized = re.sub(r"\bkey-[a-zA-Z0-9._\-]{20,}\b", "[REDACTED_API_KEY]", sanitized)
-
-    # Pattern: Bearer ... (bearer tokens)
-    sanitized = re.sub(
-        r"\bBearer\s+[a-zA-Z0-9._\-]{20,}\b", "Bearer [REDACTED_TOKEN]", sanitized
-    )
-
-    # Pattern: token= or token: followed by long strings
-    sanitized = re.sub(
-        r"(token[=:]\s*)[a-zA-Z0-9._\-]{20,}\b",
-        r"\1[REDACTED_TOKEN]",
-        sanitized,
-        flags=re.IGNORECASE,
-    )
-
-    # Pattern: secret= or secret: followed by strings
-    sanitized = re.sub(
-        r"(secret[=:]\s*)[a-zA-Z0-9._\-]{20,}\b",
-        r"\1[REDACTED_SECRET]",
-        sanitized,
-        flags=re.IGNORECASE,
-    )
-
-    # Truncate to max length
-    if len(sanitized) > max_length:
-        sanitized = sanitized[:max_length] + "..."
-
-    return sanitized
+class ReviewerAgent(BaseAgent):
+    def __init__(self, **kwargs):
+        system_prompt = (
+            "You are Kuroko Reviewer, a meticulous senior engineer. "
+            "Review code by using read_file to examine the implementations."
+        )
+        super().__init__(name="Reviewer", role="reviewer", system_prompt=system_prompt, **kwargs)

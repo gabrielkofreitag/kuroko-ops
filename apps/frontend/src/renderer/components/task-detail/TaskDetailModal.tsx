@@ -42,7 +42,7 @@ import { TaskWarnings } from './TaskWarnings';
 import { TaskSubtasks } from './TaskSubtasks';
 import { TaskLogs } from './TaskLogs';
 import { TaskFiles } from './TaskFiles';
-import { TaskReview } from './TaskReview';
+import { ThoughtStream } from '../ThoughtStream';
 import type { Task, WorktreeCreatePROptions } from '../../../shared/types';
 
 interface TaskDetailModalProps {
@@ -302,16 +302,16 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
             <CheckCircle2 className="h-5 w-5" />
             <span className="font-medium">{t('tasks:status.complete')}</span>
           </div>
-           {task.metadata?.prUrl && (
-             <button
-               type="button"
-               onClick={() => {
-                 if (task.metadata?.prUrl) {
-                   window.electronAPI?.openExternal(task.metadata.prUrl);
-                 }
-               }}
-               className="completion-state text-sm flex items-center gap-2 text-info cursor-pointer hover:underline bg-transparent border-none p-0"
-             >
+          {task.metadata?.prUrl && (
+            <button
+              type="button"
+              onClick={() => {
+                if (task.metadata?.prUrl) {
+                  window.electronAPI?.openExternal(task.metadata.prUrl);
+                }
+              }}
+              className="completion-state text-sm flex items-center gap-2 text-info cursor-pointer hover:underline bg-transparent border-none p-0"
+            >
               <GitPullRequest className="h-5 w-5" />
               <span className="font-medium">{t(TASK_STATUS_LABELS[task.status])}</span>
             </button>
@@ -379,26 +379,26 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
                         </Badge>
                       ) : state.isIncomplete ? (
                         <Badge variant="warning" className="text-xs flex items-center gap-1">
-                            <AlertTriangle className="h-3 w-3" />
-                            Incomplete
-                          </Badge>
+                          <AlertTriangle className="h-3 w-3" />
+                          Incomplete
+                        </Badge>
                       ) : (
                         <>
-                           <Badge
-                             variant={getStatusBadgeVariant(task.status, state.isStuck)}
-                             className={cn('text-xs', (task.status === 'in_progress' && !state.isStuck) && 'status-running')}
-                           >
-                             {t(TASK_STATUS_LABELS[task.status])}
-                           </Badge>
+                          <Badge
+                            variant={getStatusBadgeVariant(task.status, state.isStuck)}
+                            className={cn('text-xs', (task.status === 'in_progress' && !state.isStuck) && 'status-running')}
+                          >
+                            {t(TASK_STATUS_LABELS[task.status])}
+                          </Badge>
                           {task.status === 'human_review' && task.reviewReason && (
                             <Badge
                               variant={task.reviewReason === 'completed' ? 'success' : task.reviewReason === 'errors' ? 'destructive' : 'warning'}
                               className="text-xs"
                             >
                               {task.reviewReason === 'completed' ? 'Completed' :
-                               task.reviewReason === 'errors' ? 'Has Errors' :
-                               task.reviewReason === 'plan_review' ? 'Approve Plan' :
-                               task.reviewReason === 'stopped' ? 'Stopped' : 'QA Issues'}
+                                task.reviewReason === 'errors' ? 'Has Errors' :
+                                  task.reviewReason === 'plan_review' ? 'Approve Plan' :
+                                    task.reviewReason === 'stopped' ? 'Stopped' : 'QA Issues'}
                             </Badge>
                           )}
                         </>
@@ -501,6 +501,9 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
                 <TabsContent value="overview" className="flex-1 min-h-0 overflow-hidden mt-0">
                   <ScrollArea className="h-full">
                     <div className="p-5 space-y-5 overflow-x-hidden max-w-full">
+                      {/* Thought Stream */}
+                      <ThoughtStream />
+
                       {/* Metadata */}
                       <TaskMetadata task={task} />
 

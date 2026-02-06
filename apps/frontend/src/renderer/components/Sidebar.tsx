@@ -24,6 +24,7 @@ import {
   PanelLeftClose
 } from 'lucide-react';
 import { Button } from './ui/button';
+import { ThemeToggle } from './ThemeToggle';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
 import {
@@ -353,7 +354,7 @@ export function Sidebar({
           isCollapsed ? "justify-center px-2" : "px-4"
         )}>
           {!isCollapsed && (
-            <span className="electron-no-drag text-lg font-bold text-primary">Auto Claude</span>
+            <span className="electron-no-drag text-lg font-bold text-primary">Kuroko-Ops</span>
           )}
         </div>
 
@@ -421,14 +422,14 @@ export function Sidebar({
           {/* Settings and Help row */}
           <div className={cn(
             "flex items-center",
-            isCollapsed ? "flex-col gap-1" : "gap-2"
+            isCollapsed ? "flex-col gap-1" : "gap-1"
           )}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size={isCollapsed ? "icon" : "sm"}
-                  className={isCollapsed ? "" : "flex-1 justify-start gap-2"}
+                  className={isCollapsed ? "" : "flex-1 justify-start gap-2 px-2"}
                   onClick={onSettingsClick}
                 >
                   <Settings className="h-4 w-4" />
@@ -437,12 +438,16 @@ export function Sidebar({
               </TooltipTrigger>
               <TooltipContent side={isCollapsed ? "right" : "top"}>{t('tooltips.settings')}</TooltipContent>
             </Tooltip>
+
+            <ThemeToggle />
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => window.open('https://github.com/AndyMik90/Auto-Claude/issues', '_blank')}
+                  className="h-9 w-9 rounded-full"
+                  onClick={() => window.open('https://github.com/AndyMik90/Kuroko-Ops/issues', '_blank')}
                   aria-label={t('tooltips.help')}
                 >
                   <HelpCircle className="h-4 w-4" />
@@ -477,7 +482,7 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Initialize Auto Claude Dialog */}
+      {/* Initialize Kuroko-Ops Dialog */}
       <Dialog open={showInitDialog} onOpenChange={(open) => {
         // Only allow closing if user manually closes (not during initialization)
         if (!open && !isInitializing) {

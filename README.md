@@ -10,21 +10,21 @@
                                                          v0.1.0 :: kuroko-ops.work
 ```
 
-**Fork aprimorado do [Auto-Claude](https://github.com/AndyMik90/Auto-Claude) por AndyMik90.**
+**An enhanced fork of [Auto-Claude](https://github.com/AndyMik90/Auto-Claude) by AndyMik90.**
 
-kuroko-ops é um painel de orquestração de agentes de IA multi-LLM que permite gerenciar equipes virtuais de desenvolvimento: você explica a ideia para o Product Owner (PO), e ele planeja, delega tarefas, coordena coders, testers e reviewers — tudo rodando localmente ou em servidor, sem depender de um único provedor de IA.
+kuroko-ops is a multi-LLM AI agent orchestration dashboard that allows you to manage virtual development teams: you explain the idea to the Product Owner (PO), and they plan, delegate tasks, coordinate coders, testers, and reviewers—all running locally or on a server, without relying on a single AI provider.
 
-### Principais diferenças em relação ao original:
-- Suporte a qualquer LLM via OpenRouter (Claude, Gemini, Grok, DeepSeek, etc.)
-- Remoção completa de dependência do Claude SDK e OAuth
-- Persistência robusta (Zustand + SQLite)
-- Migração para Material UI v6 (sem Tailwind)
-- Roteamento inteligente de modelos (LiteLLM)
-- Notificações via Telegram/Slack
-- Docker-first com docker-compose pronto
+### Main differences from the original:
+- Support for any LLM via OpenRouter (Claude, Gemini, Grok, DeepSeek, etc.)
+- Complete removal of dependency on the Claude SDK and OAuth
+- Robust persistence (Zustand + SQLite)
+- Migration to Material UI v6 (without Tailwind)
+- Intelligent model routing (LiteLLM)
+- Notifications via Telegram/Slack
+- Docker-first with ready-to-use docker-compose
 
-**Licença:** AGPL-3.0 (mesma do upstream)  
-**Créditos:** Baseado no excelente trabalho do [Auto-Claude](https://github.com/AndyMik90/Auto-Claude). Todas as modificações respeitam a licença original.
+**License:** AGPL-3.0 (same as upstream)
+**Credits:** Based on the excellent work of [Auto-Claude](https://github.com/AndyMik90/Auto-Claude). All modifications respect the original license.
 
 ## Quick Start
 
